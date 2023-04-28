@@ -1,0 +1,137 @@
+
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <style>
+    html,
+    body,
+    #container {
+        width: 100%;
+        height: 100%;
+    }
+    </style>
+    <title>根据规划数据绘制步行路线</title>
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" /> <script src="https://webapi.amap.com/maps?v=1.4.15&key=您申请的key值&plugin=AMap.PolyEditor"></script>
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode:'4eb492da36bc02292af170129125fb6d',
+        }
+</script>
+    <script src="https://webapi.amap.com/maps?v=1.4.10&key=	c8d3c6c0a9050bf845463ccc4d1ae5f9&plugin=AMap.Walking"></script>
+    <script src="https://a.amap.com/jsapi_demos/static/demo-center/js/demoutils.js"></script>
+</head>
+<body>
+<div id="container"></div>
+<script src="http://code.jquery.com/jquery-1.12.4.min.js"></script>
+<script type="text/javascript">
+
+    var map = new AMap.Map("container", {
+        center: [116.397559, 39.89621],
+        zoom: 14
+    });
+
+    // 当前示例的目标是展示如何根据规划结果绘制路线，因此walkOption为空对象
+    var walkingOption = {}
+
+    // 步行导航
+    var walking = new AMap.Walking(walkingOption)
+
+    //根据起终点坐标规划步行路线
+    walking.search([108.97692,34.20907], [108.95699,34.26441], function(status, result) {
+        // result即是对应的步行路线数据信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_WalkingResult
+        if (status === 'complete') {
+            if (result.routes && result.routes.length) {
+                drawRoute(result.routes[0])
+                log.success('绘制步行路线完成')
+            }
+        } else {
+            log.error('步行路线数据查询失败' + result)
+        }
+    });
+$.getJSON('trajectory_data.json', function (path) {
+    aoi = path;
+    // console.log(aoi[6]['path1'])
+    // drawRoute(aoi[2]['path'])
+        var routeLine = new AMap.Polyline({
+                        path: aoi[3]['path3'],
+                        isOutline: true,
+                        outlineColor: '#ffeeee',
+                        borderWeight: 2,
+                        strokeWeight: 4,
+                        // strokeColor: color,
+                        // lineJoin: 'round'
+                    })
+    map.add(routeLine)
+})
+    var path2 = []
+    function drawRoute (route) {
+        var path = parseRouteToPath(route)
+        var path1 = [path[0].lng ,path[0].lat]
+        for(var i = 0, l = path.length; i < l; i++){
+            var point = [path[i].lng,path[i].lat]
+            path1.push(path[i].lng,path[i].lat)
+        }
+        for (let i = 0; i < path1.length; i += 2) {
+  path2.push([path1[i], path1[i+1]]);
+}
+        const jsonData = JSON.stringify({ path: path2 });
+        // 创建一个Blob对象，类型为JSON格式
+var blob = new Blob([jsonData], { type: "application/json" });
+
+// 创建一个下载链接，链接到Blob对象所表示的文件
+var downloadLink = document.createElement("a");
+// downloadLink.href = URL.createObjectURL(blob);
+// downloadLink.download = "data5.json";
+
+// 点击链接自动下载文件
+downloadLink.click();
+        console.log(path2)
+        var startMarker = new AMap.Marker({
+            position: path[0],
+            icon: 'https://webapi.amap.com/theme/v1.3/markers/n/start.png',
+            map: map
+        })
+
+        var endMarker = new AMap.Marker({
+            position: path[path.length - 1],
+            icon: 'https://webapi.amap.com/theme/v1.3/markers/n/end.png',
+            map: map
+        })
+
+        var routeLine = new AMap.Polyline({
+            path: path,
+            isOutline: true,
+            outlineColor: '#ffeeee',
+            borderWeight: 2,
+            strokeWeight: 5,
+            strokeColor: '#0091ff',
+            lineJoin: 'round'
+        })
+
+        routeLine.setMap(map)
+
+        // 调整视野达到最佳显示区域
+        map.setFitView([ startMarker, endMarker, routeLine ])
+    }
+
+    // 解析WalkRoute对象，构造成AMap.Polyline的path参数需要的格式
+    // WalkRoute对象的结构文档 https://lbs.amap.com/api/javascript-api/reference/route-search#m_WalkRoute
+    function parseRouteToPath(route) {
+        var path = []
+
+        for (var i = 0, l = route.steps.length; i < l; i++) {
+            var step = route.steps[i]
+
+            for (var j = 0, n = step.path.length; j < n; j++) {
+              path.push(step.path[j])
+            }
+        }
+        console.log(path)
+        return path
+    }
+</script>
+</body>
+</html>
